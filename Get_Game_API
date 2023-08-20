@@ -1,0 +1,149 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+//Model class//
+class Game {
+  String id;
+  String gameUrl;
+  String name;
+  int order;
+  bool isActive;
+  String createdAt;
+  String updatedAt;
+  int v;
+
+  Game({
+    required this.id,
+    required this.gameUrl,
+    required this.name,
+    required this.order,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.v,
+  });
+
+  factory Game.fromJson(Map<String, dynamic> json) {
+    return Game(
+      id: json['_id'],
+      gameUrl: json['gameUrl'],
+      name: json['name'],
+      order: json['order'],
+      isActive: json['isActive'],
+      createdAt: json['createdAt'],
+      updatedAt: json['updatedAt'],
+      v: json['__v'],
+    );
+  }
+}
+
+class ApiResponse {
+  bool status;
+  String message;
+  List<Game> data;
+
+  ApiResponse({
+    required this.status,
+    required this.message,
+    required this.data,
+  });
+
+  factory ApiResponse.fromJson(Map<String, dynamic> json) {
+    var dataList = json['data'] as List;
+    List<Game> games = dataList.map((gameJson) => Game.fromJson(gameJson)).toList();
+
+    return ApiResponse(
+      status: json['status'],
+      message: json['message'],
+      data: games,
+    );
+  }
+}
+
+class GameApi extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Game List App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: GameListScreen(),
+    );
+  }
+}
+
+class GameListScreen extends StatefulWidget {
+  @override
+  _GameListScreenState createState() => _GameListScreenState();
+}
+
+class _GameListScreenState extends State<GameListScreen> {
+  List<Game> games = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGames();
+  }
+
+  Future<void> fetchGames() async {
+    final apiUrl = 'http://3.95.229.239:8080/api/auth/getGames';//model class link//
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        ApiResponse apiResponse = ApiResponse.fromJson(jsonResponse);
+
+        setState(() {
+          games = apiResponse.data;
+        });
+      } else {
+        print('Request failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Center(child: Text('Game List')),
+      ),
+      //getting api//
+      body: ListView.builder(
+        itemCount: games.length,
+        itemBuilder: (context, index) {
+          Game game = games[index];
+          return ListTile(
+            title: Container(
+              height: 50,
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text('Name: ${game.name}',style: TextStyle(fontSize: 20,color: Colors.white),),
+                )),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('ID: ${game.id}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('Game URL: ${game.gameUrl}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('Order: ${game.order.toString()}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('Is Active: ${game.isActive.toString()}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('Created At: ${game.createdAt}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('Updated At: ${game.updatedAt}',style: TextStyle(fontSize: 18,fontWeight: FontWeight.w500),),
+                Text('V: ${game.v.toString()}'),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
